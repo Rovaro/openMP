@@ -10,9 +10,12 @@ using namespace std;
 
 #define _CRT_SECURE_NO_WARNINGS
 
-#define IMAGEPATH "Imagenes\\lenna-32.jpg"
-#define DISPLAY_RESULT_IMAGES true
-#define REP_NUM 20
+#define IMAGE_NAME string("arnold-6MB")
+#define IMAGE_EXTENSION string(".jpg")
+#define IMAGES_DIR string("Imagenes\\")
+#define DISPLAY_RESULT_IMAGES false
+#define STORE_RESULT_IMAGES false
+#define REP_NUM 1
 
 
 #ifdef WIN32
@@ -99,13 +102,13 @@ void function4(Mat *img) {
 }
 
 
-int custommain(int argc, char** argv)
+int main(int argc, char** argv)
 {
 	
 	double parallelTime = INFINITY, seqTime = INFINITY;
 	Mat imageArray[4];
 
-	Mat originalImage = ourImread(IMAGEPATH, CV_LOAD_IMAGE_COLOR);   // Read the file
+	Mat originalImage = ourImread(IMAGES_DIR + IMAGE_NAME + IMAGE_EXTENSION, CV_LOAD_IMAGE_COLOR);   // Read the file
 
 	if (!originalImage.data)                              // Check for invalid input
 	{
@@ -166,7 +169,7 @@ int custommain(int argc, char** argv)
 		function2(&imageArray[1]);
 		function3(&imageArray[2]);
 		function4(&imageArray[3]);
-	
+	
 		// Save the current time
 		finishTime = omp_get_wtime();
 
@@ -186,10 +189,17 @@ int custommain(int argc, char** argv)
 		}
 	}
 
+	if (STORE_RESULT_IMAGES) {
+		for (int i = 0; i < 4; i++) {
+			imwrite(IMAGES_DIR + IMAGE_NAME + "-filterset"+to_string(i+1)+".jpg", imageArray[i]);			
+		}
+	}
+
 	cout << "Parallel execution:\n Min time spent: " << parallelTime << endl;
 	cout << endl;
 	cout << "Sequential execution:\n Min time spent: " << seqTime << endl;
 	cout << endl;
+
 	waitKey(0);
 	system("pause"); // this fragment avoids autoclosing the console if DISPLAY_RESULT_IMAGES is set to true
 

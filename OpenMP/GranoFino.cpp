@@ -10,8 +10,11 @@ using namespace std;
 
 #define _CRT_SECURE_NO_WARNINGS
 
-#define IMAGEPATH "Imagenes\\lenna-32.jpg"
-#define DISPLAY_RESULT_IMAGES true
+#define IMAGE_NAME string("arnold-6MB")
+#define IMAGE_EXTENSION string(".jpg")
+#define IMAGES_DIR string("Imagenes\\")
+#define DISPLAY_RESULT_IMAGES false
+#define STORE_RESULT_IMAGES false
 #define REP_NUM 20
 
 
@@ -21,14 +24,13 @@ using namespace std;
 #define ourImread(filename, isColor) imread(filename, isColor)
 #endif
 
-int main(int argc, char** argv)
-{
+int custommain(int argc, char** argv){
 
 	double time_b1 = INFINITY;
 	
-	Mat originalImage = ourImread(IMAGEPATH, CV_LOAD_IMAGE_COLOR);   // Read the file
+	Mat originalImage = ourImread(IMAGES_DIR + IMAGE_NAME + IMAGE_EXTENSION, CV_LOAD_IMAGE_COLOR);   // Read the file
 
-	if (!originalImage.data)                              // Check for invalid input
+	if (!originalImage.data)  // Check for invalid input
 	{
 		cout << "Could not open or find the image" << std::endl;
 		waitKey(5000);
@@ -44,6 +46,7 @@ int main(int argc, char** argv)
 
 		start_time = omp_get_wtime();
 
+//#pragma omp parallel for 
 		for (int y = 0; y < originalImage.rows; y++) {
 			for (int x = 0; x < originalImage.cols; x++) {
 				for (int c = 0; c < 3; c++) {
@@ -67,23 +70,35 @@ int main(int argc, char** argv)
 	for (int j = 0; j < REP_NUM; j++) {
 		double start_time, finish_time, time_spent;
 
-		uchar *myData1 = originalImage.data;		uchar *myData2 = new_image2.data;		int stride = originalImage.step;
+		uchar *myData1 = originalImage.data;
+		uchar *myData2 = new_image2.data;
+		int stride = originalImage.step;
+
 		start_time = omp_get_wtime();
 
+//#pragma omp parallel for 
 		for (int y = 0; y < originalImage.rows; y++) {
 
-			uchar *p1 = &(myData1[y * stride]);			uchar *p2 = &(myData2[y * stride]);			while (*p1) {								for (int color = 0; color < 3; color++) {					int value = alpha * (*p1) + beta;
-					if (value > 255) {
-						value = 255;
-					}
-					*p2 = value;
+			uchar *p1 = &(myData1[y * stride]);
+			uchar *p2 = &(myData2[y * stride]);
 
-					p1++; 
-					p2++;
-				}
+			for (int x = 0; x < originalImage.cols; x++) {
+								
+				int value = alpha * (*p1) + beta;
+				*p2 = value > 255 ? 255 : value;
+				*p1++; *p2++;
+
+				int value1 = alpha * (*p1) + beta;
+				*p2 = value1 > 255 ? 255 : value1;
+				*p1++; *p2++;
+
+				int value2 = alpha * (*p1) + beta;
+				*p2 = value2 > 255 ? 255 : value2;			
+				*p1++; *p2++;
 			}
 		}
-		finish_time = omp_get_wtime();
+
+		finish_time = omp_get_wtime();
 
 		time_spent = finish_time - start_time;
 
@@ -91,23 +106,26 @@ int main(int argc, char** argv)
 			time_b2 = time_spent;
 	}
 
-
-
 	if (DISPLAY_RESULT_IMAGES) {		
+		cvNamedWindow("Original Image", CV_WINDOW_AUTOSIZE);// Create a window for display.
+		cvShowImage("Original Image", cvCloneImage(&(IplImage) originalImage));// Show our image inside it.
 
 		cvNamedWindow("Image 1", CV_WINDOW_AUTOSIZE);// Create a window for display.
 		cvShowImage("Image 1", cvCloneImage(&(IplImage) new_image));// Show our image inside it.	
 
 		cvNamedWindow("Image 2", CV_WINDOW_AUTOSIZE);// Create a window for display.
 		cvShowImage("Image 2", cvCloneImage(&(IplImage) new_image2));// Show our image inside it.
+	}
 
+	if (STORE_RESULT_IMAGES) {
+		imwrite(IMAGES_DIR + IMAGE_NAME + "-first-method.jpg", new_image);
+		imwrite(IMAGES_DIR + IMAGE_NAME + "-second-method.jpg", new_image2);
 	}
 
 	cout << "Methods mode execution:\n Min time spent: " << time_b1 << endl;
 	cout << endl;
 	cout << "Data mode execution:\n Min time spent: " << time_b2 << endl;
 	cout << endl;
-
 	
 	waitKey(0);
 	system("pause"); // this fragment avoids autoclosing the console if DISPLAY_RESULT_IMAGES is set to true
